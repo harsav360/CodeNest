@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const Profile = require("../models/Profile");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const mailSender = require("../utils/mailSender");
 
 // Send OTP
 exports.sendOTP = async (req, res) => {
@@ -233,10 +234,56 @@ exports.login = async (req, res) => {
 
 //Change Password
 exports.changePassword = async (req, res) => {
-  // Get data from Request body
-  // Get oldPassword,newPassword, and confirmNewPassword
-  // Validation
-  // Update password in database
-  // Send Mail - Password Changed
-  // Return Response
+  try {
+    // Get data from Request body
+    // Get oldPassword,newPassword, and confirmNewPassword
+    const { oldPassword, newPassword, confirmPassword, email } = req.body;
+    const user = await User.findOne({ email: email });
+    // Validation
+    if (bcrypt.compare(oldPassword, user.password)) {
+      if (newPassword !== confirmPassword) {
+        return res.status(401).json({
+          success: false,
+          message: "Password didn't match",
+        });
+      } else {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Password Update
+        await User.findOneAndUpdate(
+          { email: email },
+          { password: hashedPassword },
+          { new: true }
+        );
+        // Send Mail - Password Changed
+        try {
+          const mailResponse = await mailSender(
+            email,
+            "Password update email from CodeNest",
+            "Password Updated Successfully"
+          );
+          console.log("Email Sent Successfully : ", mailResponse);
+        } catch (error) {
+          console.log("Error Occured while sending mails : ", error);
+          throw error;
+        }
+        // Return Response
+        return res.status(200).json({
+          success: true,
+          message: "Password Updated successfully",
+        });
+      }
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: "Old Password didn't match",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong during password update, Please try again",
+    });
+  }
 };

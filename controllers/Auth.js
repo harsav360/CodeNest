@@ -237,8 +237,9 @@ exports.changePassword = async (req, res) => {
   try {
     // Get data from Request body
     // Get oldPassword,newPassword, and confirmNewPassword
-    const { oldPassword, newPassword, confirmPassword, email } = req.body;
-    const user = await User.findOne({ email: email });
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+    const userId = req.user.id;
+    const user = await User.findById(userId);
     // Validation
     if (bcrypt.compare(oldPassword, user.password)) {
       if (newPassword !== confirmPassword) {
@@ -251,14 +252,14 @@ exports.changePassword = async (req, res) => {
 
         // Password Update
         await User.findOneAndUpdate(
-          { email: email },
+          userId,
           { password: hashedPassword },
           { new: true }
         );
         // Send Mail - Password Changed
         try {
           const mailResponse = await mailSender(
-            email,
+            user.email,
             "Password update email from CodeNest",
             "Password Updated Successfully"
           );

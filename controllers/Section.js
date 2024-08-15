@@ -16,7 +16,7 @@ exports.createSection = async (req, res) => {
     const newSection = await Section.create({ sectionName });
     // Update Course with section objectid
     const updatedCourseDetails = await Course.findByIdAndUpdate(
-      courseId,
+      { _id: courseId },
       {
         $push: {
           courseContent: newSection._id,
@@ -77,6 +77,7 @@ exports.deleteSection = async (req, res) => {
     const { sectionId } = req.params;
     // Use findByIdAndDelete
     await Section.findByIdAndDelete(sectionId);
+    // Todo : do we need to delete the entry from course schema
     // Return Response
     return res.status(200).json({
       success: true,
